@@ -1,4 +1,5 @@
 from nmigen import *
+from nmigen.utils import bits_for
 
 from qspi_tx import QspiTx
 from qspi_rx import QspiRx
@@ -11,13 +12,13 @@ class Dispatcher(Elaboratable):
         self.num_periphs = num_periphs
         
         # QSPI pins
-        self.csn  = Signal()          # The chip select pin
-        self.sclk = Signal()          # The QSPI clock pin
-        self.qd_i = Signal(4)         # The QSPI pins in read mode
-        self.qd_o = Signal(4)         # The QSPI pins in write mode
-        self.qdir = Signal(reset=0)   # The direction pin. Zero means STM32 -> ice40 
-        self.ev_i = Signal(4)         # The event lines in read mode. Selects a peripheral
-        self.ev_o = Signal(4)         # The event lines in write mode.
+        self.csn  = Signal()                      # The chip select pin
+        self.sclk = Signal()                      # The QSPI clock pin
+        self.qd_i = Signal(4)                     # The QSPI pins in read mode
+        self.qd_o = Signal(4)                     # The QSPI pins in write mode
+        self.qdir = Signal(reset=0)               # The direction pin. Zero means STM32 -> ice40 
+        self.ev_i = Signal(bits_for(num_periphs)) # The event lines in read mode. Selects a peripheral
+        self.ev_o = Signal(bits_for(num_periphs)) # The event lines in write mode.
 
         # Peripherals
         self.periph    = [None] * num_periphs # Contains all peripherals
@@ -82,7 +83,7 @@ class Dispatcher(Elaboratable):
             # or a peripheral to have output data to send to the STM32
             with m.State("IDLE"):
                 # If the STM32 sets an event, process the incoming data
-                with m.If(self.ev_i != 0xf):
+                with m.If(~self.ev_i.all()):
                     m.d.sync += periph_ev.eq(self.ev_i)
                     m.next = "STM_EVENT"
                 # Otherwise look at all the registered tx peripherals to 
@@ -132,7 +133,7 @@ class Dispatcher(Elaboratable):
             # Also before going into SEND mode, we set the direction to ice40 -> STM32 and set the
             # event lines to the id of the selected peripheral.
             with m.State("PERIPH_EVENT"):
-                with m.If(self.ev_i == 0xF):
+                with m.If(self.ev_i.all()):
                     with m.Switch(periph_ev):
                         for i in range(self.num_periphs):
                             p = self.tx_periph[i]

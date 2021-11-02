@@ -4,6 +4,7 @@ from nmigen.sim import *
 from dispatcher import Dispatcher
 from test_rx import TestRx
 from test_tx import TestTx
+from test_both import TestBoth
 
 if __name__ == "__main__":
 
@@ -41,7 +42,7 @@ if __name__ == "__main__":
     m = Module()
 
     dut = Dispatcher()
-    dut.register(0, TestRx(), True, False)
+    dut.register(0, TestBoth(), True, True)
     dut.register(1, TestTx(), False, True)
     m.submodules.dut = dut
 
