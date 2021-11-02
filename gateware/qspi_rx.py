@@ -1,6 +1,10 @@
 from nmigen import *
+from nmigen.utils import bits_for
+
+from nmigen.hdl.ast import Rose
 
 class QspiRx(Elaboratable):
+    """ QSPI Slave Receive data """
     def __init__(self, pkt_size=16):
         # Parameters
         self.pkt_size = pkt_size
@@ -17,15 +21,21 @@ class QspiRx(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        with m.If(self.csn):
-            m.d.sync += self.ready.eq(0)
-        with m.Else():
-            m.d.sync += [
-                self.ready.eq(1)
-            ]
+        nibbles = Signal(bits_for(self.pkt_size) * 2)
 
-        if platform is None:
-            m.d.comb += self.pkt.eq(self.qd)
+        with m.If(self.csn):
+            m.d.sync += [
+                nibbles.eq(0),
+                self.pkt.eq(0)
+            ]
+        with m.Else():
+            with m.If(Rose(self.sclk)):
+                m.d.sync += [
+                    self.pkt.eq(Cat(self.qd, self.pkt[:-4])),
+                    nibbles.eq(nibbles+1)
+                ]
+
+        m.d.comb += self.ready.eq(nibbles == self.pkt_size * 2)
 
         return m
 

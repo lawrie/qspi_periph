@@ -39,7 +39,8 @@ class Dispatcher(Elaboratable):
         m = Module()
 
         # Signals
-        pkt       = Signal(self.pkt_size * 8)  # Packet buffer
+        tx_pkt    = Signal(self.pkt_size * 8)  # Send packet buffer
+        rx_pkt    = Signal(self.pkt_size * 8)  # Receive packet buffer
         rx_valid  = Signal()                   # Set when data has been received from STM
         periph_ev = Signal(4)                  # The event id for both directions
 
@@ -56,7 +57,7 @@ class Dispatcher(Elaboratable):
         m.d.comb += [
             tx.csn.eq(self.csn),
             tx.sclk.eq(self.sclk),
-            tx.qd.eq(self.qd_o),
+            self.qd_o.eq(tx.qd),
             rx.csn.eq(self.csn),
             rx.sclk.eq(self.sclk),
             rx.qd.eq(self.qd_i)
@@ -68,7 +69,7 @@ class Dispatcher(Elaboratable):
             if p is not None:
                 m.d.comb += [
                     p.i_valid.eq(rx_valid & (periph_ev == i)),
-                    p.i_pkt.eq(pkt)
+                    p.i_pkt.eq(rx_pkt)
                 ]
 
         # Set ack to false by default for all tx peripherals
@@ -89,7 +90,7 @@ class Dispatcher(Elaboratable):
                 # Otherwise look at all the registered tx peripherals to 
                 # see if they have valid output, and set the peripheral event.
                 with m.Else():
-                    first = False
+                    first = True
                     for i in range(self.num_periphs):
                         p = self.tx_periph[i]
                         if p is not None:
@@ -112,7 +113,7 @@ class Dispatcher(Elaboratable):
                 with m.If(self.csn):
                     m.d.sync += [
                         rx_valid.eq(1), # We have valid data for the selected peripheral
-                        pkt.eq(rx.pkt)  # Copy the data to the packet buffer
+                        rx_pkt.eq(rx.pkt)  # Copy the data to the packet buffer
                     ]
                     m.next = "RECEIVE_HANDSHAKE"
             # IN RECEIVE_HANDSHAKE state, we wait for the selected peripheral to be ready
@@ -140,7 +141,7 @@ class Dispatcher(Elaboratable):
                             if p is not None:
                                 with m.Case(i):
                                     m.d.sync += [
-                                        pkt.eq(self.tx_periph[i].o_pkt),
+                                        tx_pkt.eq(self.tx_periph[i].o_pkt),
                                         self.tx_periph[i].i_ack.eq(1)
                                     ]
                     m.d.sync += [
