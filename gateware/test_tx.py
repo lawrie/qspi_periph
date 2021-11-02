@@ -11,7 +11,7 @@ class TestTx(Elaboratable):
         self.sw        = Signal(4)
 
         # Outputs
-        self.o_pkt    = Signal(pkt_size)
+        self.o_pkt    = Signal(pkt_size * 8)
         self.o_valid  = Signal()
 
     def elaborate(self, platform):

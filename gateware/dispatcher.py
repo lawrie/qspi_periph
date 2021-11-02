@@ -39,9 +39,9 @@ class Dispatcher(Elaboratable):
         m = Module()
 
         # Signals
-        pkt       = Signal(self.pkt_size)  # Packet buffer
-        rx_valid  = Signal()               # Set when data has been received from STM
-        periph_ev = Signal(4)              # The event id for both directions
+        pkt       = Signal(self.pkt_size * 8)  # Packet buffer
+        rx_valid  = Signal()                   # Set when data has been received from STM
+        periph_ev = Signal(4)                  # The event id for both directions
 
         # QSPI send and receive modules
         m.submodules.tx = tx = QspiTx(pkt_size = self.pkt_size)

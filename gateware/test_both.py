@@ -14,7 +14,7 @@ class TestBoth(Elaboratable):
         # Outputs
         self.o_ready  = Signal()
         self.o_valid  = Signal()
-        self.o_pkt    = Signal(pkt_size)
+        self.o_pkt    = Signal(pkt_size * 8)
 
         self.led      = Signal(8)
 
