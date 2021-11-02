@@ -68,6 +68,11 @@ class Dispatcher(Elaboratable):
             if p is not None:
                 m.d.comb += p.i_valid.eq(rx_valid & (periph_ev == i))
 
+        # Set ack to false by default for all tx peripherals
+        for p in self.tx_periph:
+            if p is not None:
+                m.d.sync += p.i_ack.eq(0)
+
         # State machine
         with m.FSM():
             # In the IDLE state the STM32 can write to the event pins. 
@@ -80,15 +85,18 @@ class Dispatcher(Elaboratable):
                     m.next = "STM_EVENT"
                 # Otherwise look at all the registered tx peripherals to 
                 # see if they have valid output, and set the peripheral event.
-                # This should really be If Elif.
                 with m.Else():
+                    first = False
                     for i in range(self.num_periphs):
                         p = self.tx_periph[i]
                         if p is not None:
-                            with m.If(p.o_valid):
-                                m.d.sync += [
-                                    periph_ev.eq(i),
-                                ]
+                            if first:
+                                with m.If(p.o_valid):
+                                    m.d.sync += periph_ev.eq(i)
+                                first = False
+                            else:
+                                with m.Elif(p.o_valid):
+                                    m.d.sync += periph_ev.eq(i)
                             m.next = "PERIPH_EVENT"
             # In STM_EVENT state, the STM32 is sending data
             # Wait for CSn to go low, to start receiving the data
@@ -118,7 +126,6 @@ class Dispatcher(Elaboratable):
             # But we must wait for the event lines to be pulled up when the STM32 sets input mode.
             # We can then go into SEND mode. 
             # We need to first copy the data from the peripheral to the packet buffer and acknowledge it.
-            # TODO Set ack back to 0. It is a one-cycle strobe.
             # Also before going into SEND mode, we set the direction to ice40 -> STM32 and set the
             # event lines to the id of the selected peripheral.
             with m.State("PERIPH_EVENT"):
