@@ -3,6 +3,7 @@ from nmigen.sim import *
 
 from dispatcher import Dispatcher
 from test_rx import TestRx
+from test_tx import TestTx
 
 if __name__ == "__main__":
 
@@ -21,13 +22,27 @@ if __name__ == "__main__":
         
         yield dut.csn.eq(1)
         
-        for i in range(5):
+        for i in range(10):
+            ev_o = yield dut.ev_o
+            if (ev_o == 1):
+                break
+            yield
+
+        yield dut.csn.eq(0)
+
+        for i in range(2):
+            yield 
+        
+        yield dut.csn.eq(1)
+
+        for i in range(2):
             yield 
 
     m = Module()
 
     dut = Dispatcher()
     dut.register(0, TestRx(), True, False)
+    dut.register(1, TestTx(), False, True)
     m.submodules.dut = dut
 
     sim = Simulator(m)

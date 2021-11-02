@@ -11,13 +11,13 @@ class Dispatcher(Elaboratable):
         self.num_periphs = num_periphs
         
         # QSPI pins
-        self.csn  = Signal()   # The chip select pin
-        self.sclk = Signal()   # The QSPI clock pin
-        self.qd_i = Signal(4)  # The QSPI pins in read mode
-        self.qd_o = Signal(4)  # The QSPI pins in write mode
-        self.qdir = Signal()   # The direction pin. Zero means STM32 -> ice40 
-        self.ev_i = Signal(4)  # The event lines in read mode. Selects a peripheral
-        self.ev_o = Signal(4)  # The event lines in write mode.
+        self.csn  = Signal()          # The chip select pin
+        self.sclk = Signal()          # The QSPI clock pin
+        self.qd_i = Signal(4)         # The QSPI pins in read mode
+        self.qd_o = Signal(4)         # The QSPI pins in write mode
+        self.qdir = Signal(reset=0)   # The direction pin. Zero means STM32 -> ice40 
+        self.ev_i = Signal(4)         # The event lines in read mode. Selects a peripheral
+        self.ev_o = Signal(4)         # The event lines in write mode.
 
         # Peripherals
         self.periph    = [None] * num_periphs # Contains all peripherals
@@ -30,7 +30,7 @@ class Dispatcher(Elaboratable):
         if (rx):
             self.rx_periph[i] = mod
         if (tx):
-            self.rx_periph[i] = mod
+            self.tx_periph[i] = mod
 
     # Elaboration
     def elaborate(self, platform):
@@ -50,7 +50,6 @@ class Dispatcher(Elaboratable):
         for p in self.periph:
             if p is not None:
                 m.submodules += p
-                m.d.comb += p.i_pkt.eq(pkt)
         
         # Connect the QSPI modules
         m.d.comb += [
@@ -62,11 +61,14 @@ class Dispatcher(Elaboratable):
             rx.qd.eq(self.qd_i)
         ]
 
-        # Set valid for the selected rx_periph
+        # Set valid for the selected rx_periph and set the input packet
         for i in range(self.num_periphs):
             p = self.rx_periph[i]
             if p is not None:
-                m.d.comb += p.i_valid.eq(rx_valid & (periph_ev == i))
+                m.d.comb += [
+                    p.i_valid.eq(rx_valid & (periph_ev == i)),
+                    p.i_pkt.eq(pkt)
+                ]
 
         # Set ack to false by default for all tx peripherals
         for p in self.tx_periph:
@@ -93,11 +95,12 @@ class Dispatcher(Elaboratable):
                             if first:
                                 with m.If(p.o_valid):
                                     m.d.sync += periph_ev.eq(i)
+                                    m.next = "PERIPH_EVENT"
                                 first = False
                             else:
                                 with m.Elif(p.o_valid):
                                     m.d.sync += periph_ev.eq(i)
-                            m.next = "PERIPH_EVENT"
+                                    m.next = "PERIPH_EVENT"
             # In STM_EVENT state, the STM32 is sending data
             # Wait for CSn to go low, to start receiving the data
             with m.State("STM_EVENT"):
@@ -136,8 +139,8 @@ class Dispatcher(Elaboratable):
                             if p is not None:
                                 with m.Case(i):
                                     m.d.sync += [
-                                        pkt.eq(self.rx_periph[i].o_pkt),
-                                        self.rx_periph[i].i_ack.eq(1)
+                                        pkt.eq(self.tx_periph[i].o_pkt),
+                                        self.tx_periph[i].i_ack.eq(1)
                                     ]
                     m.d.sync += [
                         self.qdir.eq(1),
