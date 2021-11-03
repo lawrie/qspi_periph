@@ -20,6 +20,9 @@ class Dispatcher(Elaboratable):
         self.ev_i = Signal(bits_for(num_periphs)) # The event lines in read mode. Selects a peripheral
         self.ev_o = Signal(bits_for(num_periphs)) # The event lines in write mode.
 
+        # Outputs
+        self.led = Signal(4)
+
         # Peripherals
         self.periph    = [None] * num_periphs # Contains all peripherals
         self.rx_periph = [None] * num_periphs # Contains only peripheral that receive data from STM32
@@ -63,6 +66,8 @@ class Dispatcher(Elaboratable):
             rx.sclk.eq(self.sclk),
             rx.qd.eq(self.qd_i)
         ]
+
+        m.d.comb += self.led.eq(self.periph[0].led)
 
         # Set valid for the selected rx_periph and set the input packet
         for i in range(self.num_periphs):
