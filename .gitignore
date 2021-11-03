@@ -1,6 +1,7 @@
 *.vcd
 *.gtkw
 __pycache__/
+build/
 
 
 
