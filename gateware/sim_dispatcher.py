@@ -39,8 +39,14 @@ if __name__ == "__main__":
 
         yield dut.sclk.eq(0)
         yield dut.csn.eq(0)
-        for i in range(2):
+        
+        for i in range(32):
             yield 
+            yield dut.sclk.eq(1)
+            yield
+            qd_o = yield dut.qd_o;
+            print("{:x}".format(qd_o))
+            yield dut.sclk.eq(0)
         
         yield dut.csn.eq(1)
 

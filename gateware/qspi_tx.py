@@ -35,10 +35,10 @@ class QspiTx(Elaboratable):
             with m.If(Rose(self.sclk)):
                 m.d.sync += [
                     nibbles.eq(nibbles+1),
-                    self.qd.eq(shift_reg[-4:]),
                     shift_reg.eq(Cat(C(0,4), shift_reg[:-4]))
                 ]
 
+        m.d.comb += self.qd.eq(shift_reg[-4:]),
         m.d.comb += self.ready.eq(nibbles == self.pkt_size * 2)
 
         return m

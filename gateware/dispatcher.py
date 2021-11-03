@@ -57,6 +57,7 @@ class Dispatcher(Elaboratable):
         m.d.comb += [
             tx.csn.eq(self.csn),
             tx.sclk.eq(self.sclk),
+            tx.pkt.eq(tx_pkt),
             self.qd_o.eq(tx.qd),
             rx.csn.eq(self.csn),
             rx.sclk.eq(self.sclk),

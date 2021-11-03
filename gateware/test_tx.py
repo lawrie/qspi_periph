@@ -18,7 +18,7 @@ class TestTx(Elaboratable):
         m = Module()
 
         m.d.comb += self.o_valid.eq(1)
-        m.d.comb += self.o_pkt.eq(self.sw)
+        m.d.comb += self.o_pkt.eq(0x0123456789ABCDEF0123456789ABCDEF)
 
         return m
 
