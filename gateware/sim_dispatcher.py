@@ -15,11 +15,19 @@ if __name__ == "__main__":
         yield dut.ev_i.eq(0xf)
         yield
 
+        yield dut.sclk.eq(0)
         yield dut.csn.eq(0)
-        yield dut.qd_i.eq(10)
+        nibble = 0
 
-        for i in range(2):
+        for i in range(32):
+            yield dut.qd_i.eq(i & 0xF)
+
             yield 
+            yield dut.sclk.eq(1)
+            yield
+            yield dut.sclk.eq(0)
+        
+        yield 
         
         yield dut.csn.eq(1)
         
@@ -29,8 +37,8 @@ if __name__ == "__main__":
                 break
             yield
 
+        yield dut.sclk.eq(0)
         yield dut.csn.eq(0)
-
         for i in range(2):
             yield 
         
