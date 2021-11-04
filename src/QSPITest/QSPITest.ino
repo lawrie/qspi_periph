@@ -54,7 +54,7 @@ void loop() {
         Serial.read();
     }
     configured = true;
-    Serial.println("Configured")
+    Serial.println("Configured");
   } else {
     // Check the current direction
     if (digitalRead(PIN_DIRECTION) == 0) {
