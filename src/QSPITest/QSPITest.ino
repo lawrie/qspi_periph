@@ -48,13 +48,18 @@ static char rx_pkt[17];
 static bool configured = false;
 
 void loop() {
+  if (!Serial.available())
+    return;
   if (!configured) {
+    digitalWrite(LED_BUILTIN, 1);
     if (myStorm.FPGAConfigure(Serial)) {
       while (Serial.available())
         Serial.read();
+      configured = true;
+      Serial.println("Configured");
     }
-    configured = true;
-    Serial.println("Configured");
+    digitalWrite(LED_BUILTIN, 0);
+
   } else {
     // Check the current direction
     if (digitalRead(PIN_DIRECTION) == 0) {
