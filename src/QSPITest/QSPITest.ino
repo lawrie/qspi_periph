@@ -45,37 +45,47 @@ static char tx_pkt[] = {0x01, 0x23, 0x45, 0x67, 0x89, 0x89, 0xab, 0xcd, 0xef,
 
 static char rx_pkt[17];
 
-void loop() {
+static bool configured = false;
 
-  // Check the current direction
-  if (digitalRead(PIN_DIRECTION) == 0) {
-    // Write to peripheral 0
-    // First set event zero
-    pinMode(PIN_DIRECTION, OUTPUT);
-    set_event(0);
-    pinMode(PIN_DIRECTION, INPUT);
+void loop() {
+  if (!configured) {
+    if (myStorm.FPGAConfigure(Serial)) {
+      while (Serial.available())
+        Serial.read();
+    }
+    configured = true;
+    Serial.println("Configured")
+  } else {
+    // Check the current direction
+    if (digitalRead(PIN_DIRECTION) == 0) {
+      // Write to peripheral 0
+      // First set event zero
+      pinMode(PIN_DIRECTION, OUTPUT);
+      set_event(0);
+      pinMode(PIN_DIRECTION, INPUT);
+
+      if (digitalRead(PIN_DIRECTION) == 1) {
+        // Then write the packet
+        if (!QSPI.write(tx_pkt, 16))
+          Serial.println("QSPI.transmit failed");
+      }
+    } 
 
     if (digitalRead(PIN_DIRECTION) == 1) {
-      // Then write the packet
-      if (!QSPI.write(tx_pkt, 16))
-        Serial.println("QSPI.transmit failed");
-    }
-  } 
+      // Get the event
+      int ev = get_event();
+      Serial.print("Event is ");
+      Serial.println(ev);
 
-  if (digitalRead(PIN_DIRECTION) == 1) {
-    // Get the event
-    int ev = get_event();
-    Serial.print("Event is ");
-    Serial.println(ev);
+      if (ev != 0xF) {
+        // Do a read
+        if (!QSPI.read(rx_pkt, 16))
+          Serial.println("QSPI.receive failed");
 
-    if (ev != 0xF) {
-      // Do a read
-      if (!QSPI.read(rx_pkt, 16))
-        Serial.println("QSPI.receive failed");
-
-      // Print the received packet
-      rx_pkt[16] = 0;
-      Serial.println(rx_pkt);
+        // Print the received packet
+        rx_pkt[16] = 0;
+        Serial.println(rx_pkt);
+      }
     }
   }
 }
