@@ -34,7 +34,7 @@ int get_event () {
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(PIN_DIRECTION, INPUT);  // direction
-  setOutput();
+  set_output();
   QSPI.begin(40000000, QSPI.Mode3);
   Serial.begin(9600);
   QSPI.beginTransaction();
