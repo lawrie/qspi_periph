@@ -10,7 +10,7 @@ void set_output() {
   pinMode(PIN_SPI2_SCK, OUTPUT);
 }
 
-void set_output() {
+void set_input() {
   pinMode(PIN_BUTTON2, INPUT);
   pinMode(PIN_SPI2_MOSI, INPUT);
   pinMode(PIN_SPI2_MISO, INPUT);
