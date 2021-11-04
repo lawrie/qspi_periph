@@ -89,9 +89,10 @@ void loop() {
 
         // Print the received packet
         rx_pkt[16] = 0;
-        Serial.println(rx_pkt);
+        //Serial.println(rx_pkt);
       }
     }
+    delay(1000);
   }
 }
 
