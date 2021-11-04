@@ -24,7 +24,7 @@ void set_event(int n) {
   digitalWrite(PIN_SPI2_SCK, n & 0x1);
 }
 
-void get_event () {
+int get_event () {
   return digitalRead(PIN_BUTTON1) << 3 |
          digitalRead(PIN_SPI2_MOSI) << 2 |
          digitalRead(PIN_SPI2_MISO) << 1 |
