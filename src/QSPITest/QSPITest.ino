@@ -63,6 +63,7 @@ void loop() {
   } else {
     // Check the current direction
     if (digitalRead(PIN_DIRECTION) == 0) {
+      Serial.println("Writing");
       // Write to peripheral 0
       // First set event zero
       pinMode(PIN_DIRECTION, OUTPUT);
@@ -83,6 +84,7 @@ void loop() {
       Serial.println(ev);
 
       if (ev != 0xF) {
+        Serial.println("Reading");
         // Do a read
         if (!QSPI.read(rx_pkt, 16))
           Serial.println("QSPI.receive failed");
