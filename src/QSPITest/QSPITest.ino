@@ -55,11 +55,11 @@ void loop() {
     set_event(0);
     pinMode(PIN_DIRECTION, INPUT);
 
-    if (digitalRead(PIN_DIRECTION) == 1) break;
-
-    // Then write the packet
-    if (!QSPI.write(tx_pkt, 16))
-      Serial.println("QSPI.transmit failed");
+    if (digitalRead(PIN_DIRECTION) == 1) {
+      // Then write the packet
+      if (!QSPI.write(tx_pkt, 16))
+        Serial.println("QSPI.transmit failed");
+    }
   } 
 
   if (digitalRead(PIN_DIRECTION) == 1) {
