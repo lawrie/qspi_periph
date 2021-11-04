@@ -119,18 +119,25 @@ class Dispatcher(Elaboratable):
                 with m.If(self.csn):
                     m.d.sync += [
                         rx_valid.eq(1), # We have valid data for the selected peripheral
-                        rx_pkt.eq(rx.pkt)  # Copy the data to the packet buffer
+                        rx_pkt.eq(rx.pkt),  # Copy the data to the packet buffer
+                        # Set all bits high and direction 1, so the STM can't send
+                        # while we are waiting for the peripheral to be ready
+                        self.ev_o.eq(Repl(C(1,1), bits_for(self.num_periphs))),
+                        self.qdir.eq(1)
                     ]
                     m.next = "RECEIVE_HANDSHAKE"
             # IN RECEIVE_HANDSHAKE state, we wait for the selected peripheral to be ready
             # to consume the data, and then set valid false.
-            # We then go back to the IDLE state
+            # We then go back to the IDLE state with direction set to 0.
             with m.State("RECEIVE_HANDSHAKE"):
                 for i in range(self.num_periphs):
                     p = self.rx_periph[i]
                     if p is not None:
                         with m.If((i == periph_ev) & p.o_ready):
-                            m.d.sync += rx_valid.eq(0)
+                            m.d.sync += [
+                                rx_valid.eq(0),
+                                self.qdir.eq(0)
+                            ]
                             m.next = "IDLE"
             # In PERIPH_EVENT state, we check for race condition where both sides try to
             # send data at the same time. The STM32 detects this and does the read instead.
