@@ -5,7 +5,7 @@ from nmigen.build import *
 
 from dispatcher import Dispatcher
 from test_both import TestBoth
-from test_tx import TestTx
+from hello_tx import HelloTx
 
 qspi = [
     Resource("csn",  0, Pins("81", dir="i"),  Attrs(IO_STANDARD="SB_LBCMOS")),
@@ -15,10 +15,10 @@ qspi = [
     Resource("qd",   2, Pins("79", dir="io"), Attrs(IO_STANDARD="SB_LBCMOS")),
     Resource("qd",   3, Pins("80", dir="io"), Attrs(IO_STANDARD="SB_LBCMOS")),
     Resource("qdir", 0, Pins("63", dir="o"),  Attrs(IO_STANDARD="SB_LBCMOS")),
-    Resource("ev",   0, Pins("64", dir="io"),  Attrs(IO_STANDARD="SB_LBCMOS")),
-    Resource("ev",   1, Pins("39", dir="io"),  Attrs(IO_STANDARD="SB_LBCMOS")),
-    Resource("ev",   2, Pins("38", dir="io"),  Attrs(IO_STANDARD="SB_LBCMOS")),
-    Resource("ev",   3, Pins("37", dir="io"),  Attrs(IO_STANDARD="SB_LBCMOS")),
+    Resource("ev",   0, Pins("64", dir="io"), Attrs(IO_STANDARD="SB_LBCMOS", PULLUP=1)),
+    Resource("ev",   1, Pins("39", dir="io"), Attrs(IO_STANDARD="SB_LBCMOS", PULLUP=1)),
+    Resource("ev",   2, Pins("38", dir="io"), Attrs(IO_STANDARD="SB_LBCMOS", PULLUP=1)),
+    Resource("ev",   3, Pins("37", dir="io"), Attrs(IO_STANDARD="SB_LBCMOS", PULLUP=1)),
 ]
 
 class QSPITest(Elaboratable):
@@ -26,7 +26,7 @@ class QSPITest(Elaboratable):
         self.dispatcher = Dispatcher()
 
         self.dispatcher.register(0, TestBoth(), True, True)
-        self.dispatcher.register(1, TestTx(), False, True)
+        self.dispatcher.register(1, HelloTx(), False, True)
 
     def elaborate(self, platform):
         led0  = platform.request("led", 0)
@@ -66,7 +66,7 @@ class QSPITest(Elaboratable):
             ev1.oe.eq(qdir),
             ev2.oe.eq(qdir),
             ev3.oe.eq(qdir),
-            Cat([led0, led1, led2, led3]).eq(dispatch.led)
+            Cat([led3, led2, led1, led0]).eq(dispatch.led)
         ]
 
         return m
