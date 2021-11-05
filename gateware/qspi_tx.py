@@ -3,7 +3,6 @@ from nmigen.utils import bits_for
 
 from nmigen.hdl.ast import Rose
 
-
 class QspiTx(Elaboratable):
     def __init__(self, pkt_size=16):
         # Parameters
