@@ -26,9 +26,13 @@ class QspiRx(Elaboratable):
         sclk = Signal()
         m.submodules += FFSynchronizer(i=self.sclk, o=sclk)
         
+        # De-glitch sclk
+        csn = Signal()
+        m.submodules += FFSynchronizer(i=self.csn, o=csn)
+        
         nibbles = Signal(bits_for(self.pkt_size) * 2)
 
-        with m.If(self.csn):
+        with m.If(csn):
             m.d.sync += [
                 nibbles.eq(0),
                 self.pkt.eq(0)
