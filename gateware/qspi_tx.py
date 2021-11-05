@@ -1,8 +1,8 @@
 from nmigen import *
 from nmigen.utils import bits_for
 
-from nmigen.hdl.ast import Rose
-
+from nmigen.hdl.ast import Rose, Fell
+from nmigen.lib.cdc import FFSynchronizer
 
 class QspiTx(Elaboratable):
     def __init__(self, pkt_size=16):
@@ -23,6 +23,10 @@ class QspiTx(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
+        # De-gltch sclk
+        sclk = Signal()
+        m.submodules += FFSynchronizer(i=self.sclk, o=sclk)
+
         nibbles = Signal(bits_for(self.pkt_size) * 2)
         shift_reg = Signal(self.pkt_size * 8)
 
@@ -32,7 +36,7 @@ class QspiTx(Elaboratable):
                 shift_reg.eq(self.pkt)
             ]
         with m.Else():
-            with m.If(Rose(self.sclk)):
+            with m.If(Fell(sclk)):
                 m.d.sync += [
                     nibbles.eq(nibbles+1),
                     shift_reg.eq(Cat(C(0,4), shift_reg[:-4]))

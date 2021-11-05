@@ -46,6 +46,10 @@ class Dispatcher(Elaboratable):
         rx_pkt    = Signal(self.pkt_size * 8)  # Receive packet buffer
         rx_valid  = Signal()                   # Set when data has been received from STM
         periph_ev = Signal(4)                  # The event id for both directions
+        event     = Signal(4)                  # De-glitch input event
+
+        # De-glitch event
+        m.d.sync += event.eq(self.ev_i)
 
         # QSPI send and receive modules
         m.submodules.tx = tx = QspiTx(pkt_size = self.pkt_size)
@@ -90,8 +94,9 @@ class Dispatcher(Elaboratable):
             # or a peripheral to have output data to send to the STM32
             with m.State("IDLE"):
                 # If the STM32 sets an event, process the incoming data
-                with m.If(~self.ev_i.all()):
-                    m.d.sync += periph_ev.eq(self.ev_i)
+                #with m.If(~event.all()):
+                with m.If(event == 0): # Allow only event zero for testing
+                    m.d.sync += periph_ev.eq(event)
                     m.next = "STM_EVENT"
                 # Otherwise look at all the registered tx peripherals to 
                 # see if they have valid output, and set the peripheral event.
