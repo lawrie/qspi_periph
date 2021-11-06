@@ -2,7 +2,6 @@ from nmigen import *
 from nmigen.utils import bits_for
 
 from nmigen.hdl.ast import Rose, Fell
-from nmigen.lib.cdc import FFSynchronizer
 
 class QspiRx(Elaboratable):
     """ QSPI Slave Receive data """
@@ -22,23 +21,15 @@ class QspiRx(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        # De-glitch sclk
-        sclk = Signal()
-        m.submodules += FFSynchronizer(i=self.sclk, o=sclk)
-        
-        # De-glitch sclk
-        csn = Signal()
-        m.submodules += FFSynchronizer(i=self.csn, o=csn)
-        
         nibbles = Signal(bits_for(self.pkt_size) * 2)
 
-        with m.If(csn):
+        with m.If(self.csn):
             m.d.sync += [
                 nibbles.eq(0),
                 self.pkt.eq(0)
             ]
         with m.Else():
-            with m.If(Rose(sclk)):
+            with m.If(Rose(self.sclk)):
                 m.d.sync += [
                     self.pkt.eq(Cat(self.qd, self.pkt[:-4])),
                     nibbles.eq(nibbles+1)

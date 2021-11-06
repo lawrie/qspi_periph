@@ -1,6 +1,8 @@
 from nmigen import *
 from nmigen.utils import bits_for
 
+from nmigen.lib.cdc import FFSynchronizer
+
 from qspi_tx import QspiTx
 from qspi_rx import QspiRx
 
@@ -51,6 +53,14 @@ class Dispatcher(Elaboratable):
         # De-glitch event
         m.d.sync += event.eq(self.ev_i)
 
+        # De-gltch sclk
+        sclk = Signal()
+        m.submodules += FFSynchronizer(i=self.sclk, o=sclk)
+
+        # De-glitch cs
+        csn = Signal()
+        m.submodules += FFSynchronizer(i=self.csn, o=csn)
+
         # QSPI send and receive modules
         m.submodules.tx = tx = QspiTx(pkt_size = self.pkt_size)
         m.submodules.rx = rx = QspiRx(pkt_size = self.pkt_size)
@@ -62,12 +72,12 @@ class Dispatcher(Elaboratable):
         
         # Connect the QSPI modules
         m.d.comb += [
-            tx.csn.eq(self.csn),
-            tx.sclk.eq(self.sclk),
+            tx.csn.eq(csn),
+            tx.sclk.eq(sclk),
             tx.pkt.eq(tx_pkt),
             self.qd_o.eq(tx.qd),
-            rx.csn.eq(self.csn),
-            rx.sclk.eq(self.sclk),
+            rx.csn.eq(csn),
+            rx.sclk.eq(sclk),
             rx.qd.eq(self.qd_i)
         ]
 
@@ -117,11 +127,11 @@ class Dispatcher(Elaboratable):
             # In STM_EVENT state, the STM32 is sending data
             # Wait for CSn to go low, to start receiving the data
             with m.State("STM_EVENT"):
-                with m.If(~self.csn):
+                with m.If(~csn):
                     m.next = "RECEIVING"
             # In RECEIVING state we receive the data via QSPI
             with m.State("RECEIVING"):
-                with m.If(self.csn):
+                with m.If(csn):
                     m.d.sync += [
                         rx_valid.eq(1), # We have valid data for the selected peripheral
                         rx_pkt.eq(rx.pkt),  # Copy the data to the packet buffer
@@ -169,12 +179,12 @@ class Dispatcher(Elaboratable):
                     m.next = "SEND"
             # In SEND mode we are waiting for the read transaction to start.
             with m.State("SEND"):
-                with m.If(~self.csn):
+                with m.If(~csn):
                     m.next = "SENDING"
             # In SENDING mode, we are using QSPI to send the packet to the STM32.
             # When this is done, we set the direction back to STM32 -> ice40.
             with m.State("SENDING"):
-                with m.If(self.csn):
+                with m.If(csn):
                     m.d.sync += self.qdir.eq(0) # TODO: do this earlier?
                     m.next = "IDLE"
 
