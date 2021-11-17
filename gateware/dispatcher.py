@@ -98,6 +98,9 @@ class Dispatcher(Elaboratable):
 
         # State machine
         with m.FSM():
+            with m.State("START"):
+                m.d.sync += tx_pkt[-8:].eq(ok_to_send)
+                m.next = "IDLE"
             # In the IDLE state, we are waiting for events.
             # The qdir pin is set to 0 to allow the STM to send data,
             # but qd.oe is set to 1, as the first transaction is always
@@ -111,7 +114,6 @@ class Dispatcher(Elaboratable):
             with m.State("IDLE"):
                 # If a transaction has started send ok-to-send
                 with m.If(~csn):
-                    #m.d.sync += tx_pkt[-8:].eq(ok_to_send)
                     m.next = "OK_TO_SEND"
                 # Otherwise look at all the registered tx peripherals to 
                 # see if they have valid output, and set the peripheral event.
@@ -202,12 +204,12 @@ class Dispatcher(Elaboratable):
             # In SEND_DATA state we are waiting for the read transaction to start.
             with m.State("SEND_DATA"):
                 with m.If(~csn):
-                    m.d.sync += tx_pkt[-8:].eq(ok_to_send)
                     m.next = "SENDING"
             # In SENDING mode, we are using QSPI to send the packet to the STM32.
             # When this is done, we set the direction back to STM32 -> ice40.
             with m.State("SENDING"):
                 with m.If(csn):
+                    m.d.sync += tx_pkt[-8:].eq(ok_to_send)
                     m.d.sync += self.qdir.eq(0)
                     m.next = "IDLE"
 
