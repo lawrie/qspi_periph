@@ -14,13 +14,12 @@ class Dispatcher(Elaboratable):
         self.num_periphs = num_periphs
         
         # QSPI pins
-        self.csn  = Signal()                      # The chip select pin
-        self.sclk = Signal()                      # The QSPI clock pin
-        self.qd_i = Signal(4)                     # The QSPI pins in read mode
-        self.qd_o = Signal(4)                     # The QSPI pins in write mode
-        self.qdir = Signal(reset=0)               # The direction pin. Zero means STM32 -> ice40 
-        self.ev_i = Signal(bits_for(num_periphs)) # The event lines in read mode. Selects a peripheral
-        self.ev_o = Signal(bits_for(num_periphs)) # The event lines in write mode.
+        self.csn  =  Signal()                      # The chip select pin
+        self.sclk =  Signal()                      # The QSPI clock pin
+        self.qd_i =  Signal(4)                     # The QSPI pins in read mode
+        self.qd_o =  Signal(4)                     # The QSPI pins in write mode
+        self.qd_oe = Signal(reset=1)
+        self.qdir =  Signal(reset=0)               # The direction pin. Zero means STM32 -> ice40 
 
         # Outputs
         self.led = Signal(4)
@@ -43,15 +42,15 @@ class Dispatcher(Elaboratable):
 
         m = Module()
 
+        # Constants
+        ok_to_send = Const(0xF0, 8)
+        not_ready  = Const(0xFF, 8)
+
         # Signals
         tx_pkt    = Signal(self.pkt_size * 8)  # Send packet buffer
         rx_pkt    = Signal(self.pkt_size * 8)  # Receive packet buffer
         rx_valid  = Signal()                   # Set when data has been received from STM
         periph_ev = Signal(4)                  # The event id for both directions
-        event     = Signal(4)                  # De-glitch input event
-
-        # De-glitch event
-        m.d.sync += event.eq(self.ev_i)
 
         # De-gltch sclk
         sclk = Signal()
@@ -99,17 +98,24 @@ class Dispatcher(Elaboratable):
 
         # State machine
         with m.FSM():
-            # In the IDLE state the STM32 can write to the event pins. 
-            # We are waiting for data to be sent from the STM32,
-            # or a peripheral to have output data to send to the STM32
+            # In the IDLE state, we are waiting for events.
+            # The qdir pin is set to 0 to allow the STM to send data,
+            # but qd.oe is set to 1, as the first transaction is always
+            # a read transaction.
+            # If csn goes low it means that the STM wants to send data and
+            # has started a read transaction to check that it is OK to send.
+            # This is the to cover the case where both ends want to send data
+            # at the same time, and the case where the ice40 is not ready to receive.
+            # If csn does not go low, we check whether any peripheral has data 
+            # to send to the STM and if so, go to PERIPH_EVENT state.
             with m.State("IDLE"):
-                # If the STM32 sets an event, process the incoming data
-                #with m.If(~event.all()):
-                with m.If(event == 0): # Allow only event zero for testing
-                    m.d.sync += periph_ev.eq(event)
-                    m.next = "STM_EVENT"
+                # If a transaction has started send ok-to-send
+                with m.If(~csn):
+                    #m.d.sync += tx_pkt[-8:].eq(ok_to_send)
+                    m.next = "OK_TO_SEND"
                 # Otherwise look at all the registered tx peripherals to 
                 # see if they have valid output, and set the peripheral event.
+                # We also set qdir=1 to interrupt the STM32 to tell if we have data to send.
                 with m.Else():
                     first = True
                     for i in range(self.num_periphs):
@@ -117,17 +123,31 @@ class Dispatcher(Elaboratable):
                         if p is not None:
                             if first:
                                 with m.If(p.o_valid):
-                                    m.d.sync += periph_ev.eq(i)
-                                    m.next = "PERIPH_EVENT"
+                                    m.d.sync += [
+                                        tx_pkt[-8:].eq(Cat(C(0,4), C(i,4))), # nbytes not yet used
+                                        periph_ev.eq(i),
+                                        self.qdir.eq(1)
+                                    ]
+                                    m.next = "SEND_EVENT"
                                 first = False
                             else:
                                 with m.Elif(p.o_valid):
-                                    m.d.sync += periph_ev.eq(i)
-                                    m.next = "PERIPH_EVENT"
-            # In STM_EVENT state, the STM32 is sending data
-            # Wait for CSn to go low, to start receiving the data
-            with m.State("STM_EVENT"):
+                                    m.d.sync += [
+                                        tx_pkt[-8:].eq(Cat(C(0,4), C(i, 4))),
+                                        periph_ev.eq(i),
+                                        self.qdir.eq(1)
+                                    ]
+                                    m.next = "SEND_EVENT"
+            # In OK_TO_SEND state, the STM32 has started a transaction
+            # to see if it is OK to send. Wait for csn to go high.
+            with m.State("OK_TO_SEND"):
+                with m.If(csn):
+                    m.next = "WAIT_STM_DATA"
+            # In WAIT_STM_DATA state, we are waiting for the STM to send
+            # the data packet
+            with m.State("WAIT_STM_DATA"):
                 with m.If(~csn):
+                    m.d.sync += self.qd_oe.eq(0) # Allow read from qd
                     m.next = "RECEIVING"
             # In RECEIVING state we receive the data via QSPI
             with m.State("RECEIVING"):
@@ -135,57 +155,60 @@ class Dispatcher(Elaboratable):
                     m.d.sync += [
                         rx_valid.eq(1), # We have valid data for the selected peripheral
                         rx_pkt.eq(rx.pkt),  # Copy the data to the packet buffer
-                        # Set all bits high and direction 1, so the STM can't send
-                        # while we are waiting for the peripheral to be ready
-                        self.ev_o.eq(Repl(C(1,1), bits_for(self.num_periphs))),
-                        self.qdir.eq(1)
+                        self.qd_oe.eq(1), # Allow write to qd, by default
+                        periph_ev.eq(rx.pkt[-4:]),
+                        tx_pkt[-8:].eq(not_ready)
                     ]
                     m.next = "RECEIVE_HANDSHAKE"
             # IN RECEIVE_HANDSHAKE state, we wait for the selected peripheral to be ready
             # to consume the data, and then set valid false.
-            # We then go back to the IDLE state with direction set to 0.
+            # We then go to the WAIT_FOR_TXN state.
             with m.State("RECEIVE_HANDSHAKE"):
                 for i in range(self.num_periphs):
                     p = self.rx_periph[i]
                     if p is not None:
                         with m.If((i == periph_ev) & p.o_ready):
-                            m.d.sync += [
-                                rx_valid.eq(0),
-                                self.qdir.eq(0)
-                            ]
-                            m.next = "IDLE"
-            # In PERIPH_EVENT state, we check for race condition where both sides try to
-            # send data at the same time. The STM32 detects this and does the read instead.
-            # But we must wait for the event lines to be pulled up when the STM32 sets input mode.
-            # We can then go into SEND mode. 
-            # We need to first copy the data from the peripheral to the packet buffer and acknowledge it.
-            # Also before going into SEND mode, we set the direction to ice40 -> STM32 and set the
-            # event lines to the id of the selected peripheral.
-            with m.State("PERIPH_EVENT"):
-                with m.If(self.ev_i.all()):
-                    with m.Switch(periph_ev):
-                        for i in range(self.num_periphs):
-                            p = self.tx_periph[i]
-                            if p is not None:
-                                with m.Case(i):
-                                    m.d.sync += [
-                                        tx_pkt.eq(self.tx_periph[i].o_pkt),
-                                        self.tx_periph[i].i_ack.eq(1)
-                                    ]
-                    m.d.sync += [
-                        self.qdir.eq(1),
-                        self.ev_o.eq(periph_ev)
-                    ]
-                    m.next = "SEND"
-            # In SEND mode we are waiting for the read transaction to start.
-            with m.State("SEND"):
+                            m.d.sync += rx_valid.eq(0)
+                            m.next = "WAIT_FOR_TXN"
+            # In WAIT_FOR_TXN, we wait for the completion of any request to send
+            # read transaction (that will have been replied to with not_ready),
+            # before going back to the IDLE state
+            with m.State("WAIT_FOR_TXN"):
+                with m.If(csn):
+                    m.d.sync += tx_pkt[-8:].eq(ok_to_send)
+                    m.next = "IDLE"
+            # In SEND_EVENT state, we wait for the read transaction to start.
+            with m.State("SEND_EVENT"):
                 with m.If(~csn):
+                    m.next = "SENDING_EVENT"
+            # In SENDING_EVENT state we wait for the end of the read transaction and then
+            # go to the SEND DATA state to wait for the read transactiion for the data
+            with m.State("SENDING_EVENT"):
+                with m.If(csn):
+                    m.next =  "PERIPH_EVENT"
+            # In PERIPH_EVENT state, we copy the data from the selected peripheral,
+            # to tx_pkt, ack the peripheral and go to SEND_EVENT state.
+            with m.State("PERIPH_EVENT"):
+                with m.Switch(periph_ev):
+                    for i in range(self.num_periphs):
+                        p = self.tx_periph[i]
+                        if p is not None:
+                            with m.Case(i):
+                                m.d.sync += [
+                                    tx_pkt.eq(self.tx_periph[i].o_pkt),
+                                    self.tx_periph[i].i_ack.eq(1)
+                                ]
+                m.next = "SEND_DATA"
+            # In SEND_DATA state we are waiting for the read transaction to start.
+            with m.State("SEND_DATA"):
+                with m.If(~csn):
+                    m.d.sync += tx_pkt[-8:].eq(ok_to_send)
                     m.next = "SENDING"
             # In SENDING mode, we are using QSPI to send the packet to the STM32.
             # When this is done, we set the direction back to STM32 -> ice40.
             with m.State("SENDING"):
                 with m.If(csn):
-                    m.d.sync += self.qdir.eq(0) # TODO: do this earlier?
+                    m.d.sync += self.qdir.eq(0)
                     m.next = "IDLE"
 
         return m

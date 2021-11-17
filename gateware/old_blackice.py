@@ -14,7 +14,11 @@ qspi = [
     Resource("qd",   1, Pins("84", dir="io"), Attrs(IO_STANDARD="SB_LBCMOS")),
     Resource("qd",   2, Pins("79", dir="io"), Attrs(IO_STANDARD="SB_LBCMOS")),
     Resource("qd",   3, Pins("80", dir="io"), Attrs(IO_STANDARD="SB_LBCMOS")),
-    Resource("qdir", 0, Pins("63", dir="o"),  Attrs(IO_STANDARD="SB_LBCMOS"))
+    Resource("qdir", 0, Pins("63", dir="o"),  Attrs(IO_STANDARD="SB_LBCMOS")),
+    Resource("ev",   0, Pins("64", dir="io"), Attrs(IO_STANDARD="SB_LBCMOS", PULLUP=1)),
+    Resource("ev",   1, Pins("39", dir="io"), Attrs(IO_STANDARD="SB_LBCMOS", PULLUP=1)),
+    Resource("ev",   2, Pins("38", dir="io"), Attrs(IO_STANDARD="SB_LBCMOS", PULLUP=1)),
+    Resource("ev",   3, Pins("37", dir="io"), Attrs(IO_STANDARD="SB_LBCMOS", PULLUP=1)),
 ]
 
 class QSPITest(Elaboratable):
@@ -36,6 +40,10 @@ class QSPITest(Elaboratable):
         qd2   = platform.request("qd", 2)
         qd3   = platform.request("qd", 3)
         qdir  = platform.request("qdir")
+        ev0   = platform.request("ev", 0)
+        ev1   = platform.request("ev", 1)
+        ev2   = platform.request("ev", 2)
+        ev3   = platform.request("ev", 3)
 
         m = Module()
 
@@ -48,10 +56,16 @@ class QSPITest(Elaboratable):
             qdir.eq(dispatch.qdir),
             dispatch.qd_i.eq(Cat([qd0.i, qd1.i, qd2.i, qd3.i])),
             Cat([qd0.o, qd1.o, qd2.o, qd3.o]).eq(dispatch.qd_o),
-            qd0.oe.eq(dispatch.qd_oe),
-            qd1.oe.eq(dispatch.qd_oe),
-            qd2.oe.eq(dispatch.qd_oe),
-            qd3.oe.eq(dispatch.qd_oe),
+            dispatch.ev_i.eq(Cat([ev0.i, ev1.i, ev2.i, ev3.i])),
+            Cat([ev0.o, ev1.o, ev2.o, ev3.o]).eq(dispatch.ev_o),
+            qd0.oe.eq(qdir),
+            qd1.oe.eq(qdir),
+            qd2.oe.eq(qdir),
+            qd3.oe.eq(qdir),
+            ev0.oe.eq(qdir),
+            ev1.oe.eq(qdir),
+            ev2.oe.eq(qdir),
+            ev3.oe.eq(qdir),
             Cat([led3, led2, led1, led0]).eq(dispatch.led)
         ]
 
