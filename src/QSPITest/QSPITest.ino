@@ -1,6 +1,8 @@
 #include <MyStorm.h>
 #include <QSPI.h>
 
+#include "stm32l4_wiring_private.h"
+
 #define PIN_DIRECTION PIN_BUTTON1
 
 void set_output() {
@@ -85,6 +87,11 @@ void loop() {
         // Print the received packet
         rx_pkt[16] = 0;
         Serial.println(rx_pkt);
+        for(int i=0;i<16;i++) {
+          Serial.print(rx_pkt[i],HEX);
+          Serial.print(" ");
+        }
+        Serial.println();
       }
     } else if (digitalRead(PIN_DIRECTION) == 0) {
       Serial.println("Writing event 0");
