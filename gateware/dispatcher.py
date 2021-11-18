@@ -52,7 +52,7 @@ class Dispatcher(Elaboratable):
         rx_pkt    = Signal(self.pkt_size * 8)  # Receive packet buffer
         rx_valid  = Signal()                   # Set when data has been received from STM
         periph_ev = Signal(4)                  # The event id for both directions
-        nb        = Signal(4)
+        nb        = Signal(4)                  # The number of bytes received
 
         # De-gltch sclk
         sclk = Signal()
@@ -163,12 +163,12 @@ class Dispatcher(Elaboratable):
             with m.State("RECEIVING"):
                 with m.If(csn):
                     m.d.sync += [
-                        rx_valid.eq(1),     # We have valid data for the selected peripheral
-                        rx_pkt.eq(rx.pkt),  # Copy the data to the packet buffer
-                        self.qd_oe.eq(1),   # Allow write to qd, by default
-                        periph_ev.eq(rx.pkt[-4:]),
-                        tx_pkt[-8:].eq(not_ready),
-                        nb.eq(rx.nb)
+                        rx_valid.eq(1),            # We have valid data for the selected peripheral
+                        rx_pkt.eq(rx.pkt),         # Copy the data to the packet buffer
+                        self.qd_oe.eq(1),          # Allow write to qd, by default
+                        periph_ev.eq(rx.pkt[-4:]), # Copy the peripheral is
+                        tx_pkt[-8:].eq(not_ready), # We return not ready to STM while waiting
+                        nb.eq(rx.nb)               # Get the number of bytes received
                     ]
                     m.next = "RECEIVE_HANDSHAKE"
             # IN RECEIVE_HANDSHAKE state, we wait for the selected peripheral to be ready
@@ -214,7 +214,7 @@ class Dispatcher(Elaboratable):
             with m.State("SEND_DATA"):
                 with m.If(~csn):
                     m.next = "SENDING"
-            # In SENDING mode, we are using QSPI to send the packet to the STM32.
+            # In SENDING state, we are using QSPI to send the packet to the STM32.
             # When this is done, we set the direction back to STM32 -> ice40.
             with m.State("SENDING"):
                 with m.If(csn):
