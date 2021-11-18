@@ -3,6 +3,8 @@ from nmigen.utils import bits_for
 
 from nmigen.hdl.ast import Rose, Fell
 
+import math
+
 class QspiRx(Elaboratable):
     """ QSPI Slave Receive data """
     def __init__(self, pkt_size=16, qw=4):
@@ -17,13 +19,13 @@ class QspiRx(Elaboratable):
 
         # Outputs
         self.pkt   = Signal(self.pkt_size * 8)
-        self.ready = Signal()
+        self.nb    = Signal(5)
 
     def elaborate(self, platform):
         m = Module()
 
-        chunks = Signal(bits_for(self.pkt_size) * (8 // self.qw))
-
+        chunks = Signal(bits_for(self.pkt_size * (8 // self.qw)))
+        
         with m.If(self.csn):
             m.d.sync += [
                 chunks.eq(0),
@@ -36,7 +38,7 @@ class QspiRx(Elaboratable):
                     chunks.eq(chunks+1)
                 ]
 
-        m.d.comb += self.ready.eq(chunks == self.pkt_size * (8 // self.qw))
+        m.d.comb += self.nb.eq(chunks[int(math.log2(8 // self.qw)):])
 
         return m
 

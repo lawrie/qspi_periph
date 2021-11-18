@@ -8,17 +8,18 @@ from qspi_rx import QspiRx
 
 class Dispatcher(Elaboratable):
     """ Interface between QSPI and peripherals """
-    def __init__(self, pkt_size=16, num_periphs=15):
+    def __init__(self, pkt_size=16, num_periphs=15, qw=4):
         # Parameters
         self.pkt_size    = pkt_size
         self.num_periphs = num_periphs
+        self.qw          = qw
         
         # QSPI pins
         self.csn  =  Signal()                      # The chip select pin
         self.sclk =  Signal()                      # The QSPI clock pin
-        self.qd_i =  Signal(4)                     # The QSPI pins in read mode
-        self.qd_o =  Signal(4)                     # The QSPI pins in write mode
-        self.qd_oe = Signal(reset=1)
+        self.qd_i =  Signal(qw)                    # The QSPI pins in read mode
+        self.qd_o =  Signal(qw)                    # The QSPI pins in write mode
+        self.qd_oe = Signal(reset=1)               # Output enable for qd
         self.qdir =  Signal(reset=0)               # The direction pin. Zero means STM32 -> ice40 
 
         # Outputs
@@ -51,6 +52,7 @@ class Dispatcher(Elaboratable):
         rx_pkt    = Signal(self.pkt_size * 8)  # Receive packet buffer
         rx_valid  = Signal()                   # Set when data has been received from STM
         periph_ev = Signal(4)                  # The event id for both directions
+        nb        = Signal(4)
 
         # De-gltch sclk
         sclk = Signal()
@@ -61,8 +63,13 @@ class Dispatcher(Elaboratable):
         m.submodules += FFSynchronizer(i=self.csn, o=csn)
 
         # QSPI send and receive modules
-        m.submodules.tx = tx = QspiTx(pkt_size = self.pkt_size)
-        m.submodules.rx = rx = QspiRx(pkt_size = self.pkt_size)
+        m.submodules.tx = tx = QspiTx(pkt_size = self.pkt_size, qw = self.qw)
+        m.submodules.rx = rx = QspiRx(pkt_size = self.pkt_size, qw = self.qw)
+
+        # De-glitch qd
+        qd_o = Signal(self.qw)
+        #m.submodules += FFSynchronizer(i=tx.qd, o=qd_o)
+        m.d.sync += qd_o.eq(tx.qd)
 
         # Add the registered peripherals
         for p in self.periph:
@@ -74,7 +81,7 @@ class Dispatcher(Elaboratable):
             tx.csn.eq(csn),
             tx.sclk.eq(sclk),
             tx.pkt.eq(tx_pkt),
-            self.qd_o.eq(tx.qd),
+            self.qd_o.eq(qd_o),
             rx.csn.eq(csn),
             rx.sclk.eq(sclk),
             rx.qd.eq(self.qd_i)
@@ -88,7 +95,8 @@ class Dispatcher(Elaboratable):
             if p is not None:
                 m.d.comb += [
                     p.i_valid.eq(rx_valid & (periph_ev == i)),
-                    p.i_pkt.eq(rx_pkt)
+                    p.i_pkt.eq(rx_pkt),
+                    p.i_nb.eq(nb)
                 ]
 
         # Set ack to false by default for all tx peripherals
@@ -126,7 +134,7 @@ class Dispatcher(Elaboratable):
                             if first:
                                 with m.If(p.o_valid):
                                     m.d.sync += [
-                                        tx_pkt[-8:].eq(Cat(C(0,4), C(i,4))), # nbytes not yet used
+                                        tx_pkt[-8:].eq(Cat(p.o_nb[:4], C(i, 4))), 
                                         periph_ev.eq(i),
                                         self.qdir.eq(1)
                                     ]
@@ -135,7 +143,7 @@ class Dispatcher(Elaboratable):
                             else:
                                 with m.Elif(p.o_valid):
                                     m.d.sync += [
-                                        tx_pkt[-8:].eq(Cat(C(0,4), C(i, 4))),
+                                        tx_pkt[-8:].eq(Cat(p.o_nb[:4], C(i, 4))),
                                         periph_ev.eq(i),
                                         self.qdir.eq(1)
                                     ]
@@ -155,11 +163,12 @@ class Dispatcher(Elaboratable):
             with m.State("RECEIVING"):
                 with m.If(csn):
                     m.d.sync += [
-                        rx_valid.eq(1), # We have valid data for the selected peripheral
+                        rx_valid.eq(1),     # We have valid data for the selected peripheral
                         rx_pkt.eq(rx.pkt),  # Copy the data to the packet buffer
-                        self.qd_oe.eq(1), # Allow write to qd, by default
+                        self.qd_oe.eq(1),   # Allow write to qd, by default
                         periph_ev.eq(rx.pkt[-4:]),
-                        tx_pkt[-8:].eq(not_ready)
+                        tx_pkt[-8:].eq(not_ready),
+                        nb.eq(rx.nb)
                     ]
                     m.next = "RECEIVE_HANDSHAKE"
             # IN RECEIVE_HANDSHAKE state, we wait for the selected peripheral to be ready
