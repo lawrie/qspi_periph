@@ -52,6 +52,7 @@ void loop() {
       // Do a read
       if (!QSPI.read(rx_pkt, 16))
         Serial.println("QSPI.receive failed");
+      delay(50);
 
       // Print the received packet
       rx_pkt[16] = 0;
@@ -65,12 +66,13 @@ void loop() {
       // First do a read transaction to see if we can send
       if (!QSPI.read(rx_pkt, 1))
         Serial.println("QSPI.receive failed");
+      delay(50); // Not sure why this is necessary. Without it receive B0 instead of F0
       Serial.print("Reply is 0x");
       Serial.println(rx_pkt[0], HEX);
       
       // Write to peripheral 0
       // If ready to send, write the packet
-      if (rx_pkt[0] == 0xF0 || rx_pkt[0] == 0xB0) { // Temporary hack as we seem to receive B0
+      if (rx_pkt[0] == 0xF0) {
         Serial.println("Writing event 0");
         if (!QSPI.write(tx_pkt, 16))
           Serial.println("QSPI.transmit failed");
@@ -94,7 +96,7 @@ void loop() {
         Serial.println();       
       }
     }
-    delay(1000);
+    delay(500);
   }
 }
 
