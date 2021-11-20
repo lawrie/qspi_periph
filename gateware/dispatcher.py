@@ -163,12 +163,12 @@ class Dispatcher(Elaboratable):
             with m.State("RECEIVING"):
                 with m.If(csn):
                     m.d.sync += [
-                        rx_valid.eq(1),            # We have valid data for the selected peripheral
-                        rx_pkt.eq(rx.pkt),         # Copy the data to the packet buffer
-                        self.qd_oe.eq(1),          # Allow write to qd, by default
-                        periph_ev.eq(rx.pkt[-4:]), # Copy the peripheral is
-                        tx_pkt[-8:].eq(not_ready), # We return not ready to STM while waiting
-                        nb.eq(rx.nb)               # Get the number of bytes received
+                        rx_valid.eq(1),              # We have valid data for the selected peripheral
+                        rx_pkt.eq(rx.pkt),           # Copy the data to the packet buffer
+                        self.qd_oe.eq(1),            # Allow write to qd, by default
+                        periph_ev.eq(rx.pkt.bit_select((rx.nb << 3) - 4, 4)), # Copy the peripheral id
+                        tx_pkt[-8:].eq(not_ready),   # We return not ready to STM while waiting
+                        nb.eq(rx.nb-1)               # Get the number of bytes received
                     ]
                     m.next = "RECEIVE_HANDSHAKE"
             # IN RECEIVE_HANDSHAKE state, we wait for the selected peripheral to be ready
