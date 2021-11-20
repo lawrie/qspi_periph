@@ -63,9 +63,9 @@ void loop() {
         Serial.println("QSPI.receive failed");
 
       // Print the received packet
-      rx_pkt[16] = 0;
+      rx_pkt[nb] = 0;
       Serial.println(rx_pkt);
-      for(int i=0;i<16;i++) {
+      for(int i=0;i<nb;i++) {
         Serial.print(rx_pkt[i],HEX);
         Serial.print(" ");
       }
