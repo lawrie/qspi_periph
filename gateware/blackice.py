@@ -6,6 +6,7 @@ from nmigen.build import *
 from dispatcher import Dispatcher
 from test_both import TestBoth
 from hello_tx import HelloTx
+from test_uart_tx import TestUartTx
 
 qspi = [
     Resource("csn",  0, Pins("81", dir="i"),  Attrs(IO_STANDARD="SB_LBCMOS")),
@@ -23,6 +24,7 @@ class QSPITest(Elaboratable):
 
         self.dispatcher.register(0, TestBoth(), True, True)
         self.dispatcher.register(1, HelloTx(), False, True)
+        self.dispatcher.register(2, TestUartTx(), True, False)
 
     def elaborate(self, platform):
         led0  = platform.request("led", 0)
