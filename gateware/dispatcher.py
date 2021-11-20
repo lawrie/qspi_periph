@@ -198,7 +198,7 @@ class Dispatcher(Elaboratable):
                 with m.If(csn):
                     m.next =  "PERIPH_EVENT"
             # In PERIPH_EVENT state, we copy the data from the selected peripheral,
-            # to tx_pkt, ack the peripheral and go to SEND_EVENT state.
+            # to tx_pkt, ack the peripheral and go to SEND_DATA state.
             with m.State("PERIPH_EVENT"):
                 with m.Switch(periph_ev):
                     for i in range(self.num_periphs):
@@ -206,8 +206,8 @@ class Dispatcher(Elaboratable):
                         if p is not None:
                             with m.Case(i):
                                 m.d.sync += [
-                                    tx_pkt.eq(self.tx_periph[i].o_pkt),
-                                    self.tx_periph[i].i_ack.eq(1)
+                                    tx_pkt.eq(p.o_pkt),
+                                    p.i_ack.eq(1)
                                 ]
                 m.next = "SEND_DATA"
             # In SEND_DATA state we are waiting for the read transaction to start.
