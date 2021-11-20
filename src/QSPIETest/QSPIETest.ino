@@ -5,6 +5,8 @@
 
 #define PIN_DIRECTION PIN_BUTTON1
 
+static char hello[] = "\x20" "Hello World!\n";
+
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(PIN_DIRECTION, INPUT);  // direction
@@ -46,13 +48,19 @@ void loop() {
       // Read the event
       if (!QSPI.read(rx_pkt, 1))
         Serial.println("QSPI.receive failed");
+
       Serial.print("Event is 0x");
       Serial.println(rx_pkt[0], HEX);
-            
+
+      int nb = rx_pkt[0] & 0xf;
+      if (nb == 0) nb = 16;
+
+      Serial.print("Number of bytes: ");
+      Serial.println(nb);
+      
       // Do a read
-      if (!QSPI.read(rx_pkt, 16))
+      if (!QSPI.read(rx_pkt, nb))
         Serial.println("QSPI.receive failed");
-      delay(50);
 
       // Print the received packet
       rx_pkt[16] = 0;
@@ -66,20 +74,26 @@ void loop() {
       // First do a read transaction to see if we can send
       if (!QSPI.read(rx_pkt, 1))
         Serial.println("QSPI.receive failed");
-      delay(50); // Not sure why this is necessary. Without it receive B0 instead of F0
+
       Serial.print("Reply is 0x");
       Serial.println(rx_pkt[0], HEX);
       
-      // Write to peripheral 0
+      // Write to peripheral 0 or 2
       // If ready to send, write the packet
-      if (rx_pkt[0] == 0xF0) {
-        Serial.println("Writing event 0");
-        if (!QSPI.write(tx_pkt, 16))
-          Serial.println("QSPI.transmit failed");
-        // Rotate the packet
-        char t = tx_pkt[15];
-        for(int i=15;i>1;i--) tx_pkt[i] = tx_pkt[i-1];
-        tx_pkt[1] = t;
+      if (rx_pkt[0] == 0xF0 || rx_pkt[0] == 0xB0) { // B0 is temporary hack
+        if (cnt % 2 == 0) {
+          Serial.println("Writing event 0");
+          if (!QSPI.write(tx_pkt, 16))
+            Serial.println("QSPI.transmit failed");
+          // Rotate the packet
+          char t = tx_pkt[15];
+          for(int i=15;i>1;i--) tx_pkt[i] = tx_pkt[i-1];
+          tx_pkt[1] = t;
+        } else {
+          Serial.println("Writing event 0");
+          if (!QSPI.write(hello, 14))
+            Serial.println("QSPI.transmit failed");
+        }
       } else if (rx_pkt[0] != 0xFF && digitalRead(PIN_DIRECTION) == 1) {
         Serial.println("Switching to receive");
         // Do a read
