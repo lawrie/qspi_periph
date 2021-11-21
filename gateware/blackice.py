@@ -7,6 +7,7 @@ from dispatcher import Dispatcher
 from test_both import TestBoth
 from hello_tx import HelloTx
 from test_uart import TestUart
+from sevseg import SevenRx
 
 qspi = [
     Resource("csn",  0, Pins("81", dir="i"),  Attrs(IO_STANDARD="SB_LBCMOS")),
@@ -22,9 +23,10 @@ class QSPITest(Elaboratable):
     def __init__(self):
         self.dispatcher = Dispatcher()
 
-        self.dispatcher.register(0, TestBoth(), True, True)
-        self.dispatcher.register(1, HelloTx(), False, True)
-        self.dispatcher.register(2, TestUart(), True, True)
+        self.dispatcher.register(0, TestBoth(), True,  True)
+        self.dispatcher.register(1, HelloTx(),  False, True)
+        self.dispatcher.register(2, TestUart(), True,  True)
+        self.dispatcher.register(3, SevenRx(),  True,  False)
 
     def elaborate(self, platform):
         led0  = platform.request("led", 0)
