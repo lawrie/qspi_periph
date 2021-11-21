@@ -20,9 +20,13 @@ static char tx_pkt[] = {0x0F, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef,
 
 static char rx_pkt[17];
 
+static char sev_pkt[] = {0x30, 0x00};
+
 static bool configured = false;
 
 static int cnt = 0;
+
+static char sev_val;
 
 void loop() {
   if (!Serial.available())
@@ -78,10 +82,10 @@ void loop() {
       Serial.print("Reply is 0x");
       Serial.println(rx_pkt[0], HEX);
       
-      // Write to peripheral 0 or 2
+      // Write to peripheral 0 or 2 o2 3
       // If ready to send, write the packet
       if (rx_pkt[0] == 0xF0 || rx_pkt[0] == 0xB0) { // B0 is temporary hack
-        if (cnt % 2 == 0) {
+        if (cnt % 3 == 0) {
           Serial.println("Writing event 0");
           if (!QSPI.write(tx_pkt, 16))
             Serial.println("QSPI.transmit failed");
@@ -89,10 +93,15 @@ void loop() {
           char t = tx_pkt[15];
           for(int i=15;i>1;i--) tx_pkt[i] = tx_pkt[i-1];
           tx_pkt[1] = t;
-        } else {
+        } else if (cnt % 2 == 1) {
           Serial.println("Writing event 0");
           if (!QSPI.write(hello, 14))
             Serial.println("QSPI.transmit failed");
+        } else {
+          Serial.println("Writing event 3");
+          sev_pkt[1] = sev_val++;
+          if (!QSPI.write(sev_pkt, 2))
+            Serial.println("QSPI.transmit failed");          
         }
       } else if (rx_pkt[0] != 0xFF && digitalRead(PIN_DIRECTION) == 1) {
         Serial.println("Switching to receive");
