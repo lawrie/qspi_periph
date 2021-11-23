@@ -34,11 +34,11 @@ class BramPeriph(Elaboratable):
         req   = Signal()
 
         # A write request consists of a 1-bit request (1=write, 0=read), followed by
-        # a 15-bit address, followed by a variable number of bytes (uo to 13)
+        # a 15-bit address, followed by a variable number of bytes (up to 13)
         # A read request starts with the same request bit and address, and that is 
         # followed by a byte specifying the number of bytes to read (up to 16)
 
-        req_byte = self.i_pkt.bit_select(Cat(C(0,3), self.i_nb) - 1, 1)
+        req_bit = self.i_pkt.bit_select(Cat(C(0,3), self.i_nb) - 1, 1)
 
         # Copy in the packet when valid and ready
         with m.If(self.i_valid & self.o_ready):
@@ -47,10 +47,10 @@ class BramPeriph(Elaboratable):
                 # Get the 15-bit address
                 addr.eq(self.i_pkt.bit_select(Cat(C(0,3), self.i_nb) - 16, 15)),
                 # Get the request bit
-                req.eq(req_byte),
+                req.eq(req_bit),
                 # Add 1 to number of bytes for read requests to make detecting 
                 # all bytes read simpler
-                nb.eq(Mux(req_byte == 1, self.i_nb - 2, self.i_pkt[:8] + 1)),
+                nb.eq(Mux(req_bit == 1, self.i_nb - 2, self.i_pkt[:8] + 1)),
                 # Output number of bytes is only relevant for read requests
                 self.o_nb.eq(self.i_pkt[:8]) 
             ]
