@@ -8,6 +8,7 @@ from test_both import TestBoth
 from hello_tx import HelloTx
 from test_uart import TestUart
 from sevseg import SevenRx
+from bram_periph import BramPeriph
 
 qspi = [
     Resource("csn",  0, Pins("81", dir="i"),  Attrs(IO_STANDARD="SB_LBCMOS")),
@@ -27,6 +28,7 @@ class QSPITest(Elaboratable):
         self.dispatcher.register(1, HelloTx(),  False, True)
         self.dispatcher.register(2, TestUart(), True,  True)
         self.dispatcher.register(3, SevenRx(),  True,  False)
+        self.dispatcher.register(4, BramPeriph(),   True,  True)
 
     def elaborate(self, platform):
         led0  = platform.request("led", 0)
@@ -64,5 +66,5 @@ class QSPITest(Elaboratable):
 if __name__ == "__main__":
     platform = BlackIceIIPlatform()
     platform.add_resources(qspi)
-    platform.build(QSPITest(), do_program=True)
+    platform.build(QSPITest(), nextpnr_opts="--timing-allow-fail", do_program=True)
 
