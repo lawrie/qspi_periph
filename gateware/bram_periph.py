@@ -22,7 +22,7 @@ class BramPeriph(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        # Create the memory and its ports
+        # Create the memory and its ports, currently only width=8 is supported
         mem = Memory(width=8, depth=self.depth)
         m.submodules.w = w = mem.write_port()
         m.submodules.r = r = mem.read_port()
@@ -32,6 +32,11 @@ class BramPeriph(Elaboratable):
         addr  = Signal(15)
         i_pkt = Signal(self.pkt_size * 8)
         req   = Signal()
+
+        # A write request consists of a 1-bit request (1=write, 0=read), followed by
+        # a 15-bit address, followed by a variable number of bytes (uo to 13)
+        # A read request starts with the same request bit and address, and that is 
+        # followed by a byte specifying the number of bytes to read (up to 16)
 
         req_byte = self.i_pkt.bit_select(Cat(C(0,3), self.i_nb) - 1, 1)
 
