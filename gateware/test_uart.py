@@ -12,6 +12,7 @@ class TestUart(Elaboratable):
         self.i_valid  = Signal()
         self.i_ack    = Signal()
         self.i_nb     = Signal(4)
+        self.i_flags  = Signal(4)
 
         # Outputs
         self.o_ready  = Signal()

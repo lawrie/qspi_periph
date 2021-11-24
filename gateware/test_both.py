@@ -11,6 +11,7 @@ class TestBoth(Elaboratable):
         self.i_valid  = Signal()
         self.i_ack    = Signal()
         self.i_nb     = Signal()
+        self.i_flags  = Signal(4)
 
         # Outputs
         self.o_ready  = Signal()

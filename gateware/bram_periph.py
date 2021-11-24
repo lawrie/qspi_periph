@@ -12,6 +12,7 @@ class BramPeriph(Elaboratable):
         self.i_valid  = Signal()
         self.i_nb     = Signal(4)
         self.i_ack    = Signal()
+        self.i_flags  = Signal(4)
 
         # Outputs
         self.o_ready  = Signal()
@@ -29,7 +30,7 @@ class BramPeriph(Elaboratable):
 
         # Signals
         nb    = Signal(4)
-        addr  = Signal(15)
+        addr  = Signal(16)
         i_pkt = Signal(self.pkt_size * 8)
         req   = Signal()
 
@@ -38,14 +39,14 @@ class BramPeriph(Elaboratable):
         # A read request starts with the same request bit and address, and that is 
         # followed by a byte specifying the number of bytes to read (up to 16)
 
-        req_bit = self.i_pkt.bit_select(Cat(C(0,3), self.i_nb) - 1, 1)
+        req_bit = self.i_flags[0]
 
         # Copy in the packet when valid and ready
         with m.If(self.i_valid & self.o_ready):
             m.d.sync += [
                 i_pkt.eq(self.i_pkt),
                 # Get the 15-bit address
-                addr.eq(self.i_pkt.bit_select(Cat(C(0,3), self.i_nb) - 16, 15)),
+                addr.eq(self.i_pkt.bit_select(Cat(C(0,3), self.i_nb) - 16, 16)),
                 # Get the request bit
                 req.eq(req_bit),
                 # Add 1 to number of bytes for read requests to make detecting 

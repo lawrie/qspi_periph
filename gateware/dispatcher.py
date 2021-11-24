@@ -53,6 +53,7 @@ class Dispatcher(Elaboratable):
         rx_valid  = Signal()                   # Set when data has been received from STM
         periph_ev = Signal(4)                  # The event id for both directions
         nb        = Signal(4)                  # The number of bytes received
+        flags     = Signal(4)                  # Extra flags sent with write request
 
         # De-gltch sclk
         sclk = Signal()
@@ -96,7 +97,8 @@ class Dispatcher(Elaboratable):
                 m.d.comb += [
                     p.i_valid.eq(rx_valid & (periph_ev == i)),
                     p.i_pkt.eq(rx_pkt),
-                    p.i_nb.eq(nb)
+                    p.i_nb.eq(nb),
+                    p.i_flags.eq(flags)
                 ]
 
         # Set ack to false by default for all tx peripherals
@@ -168,7 +170,8 @@ class Dispatcher(Elaboratable):
                         self.qd_oe.eq(1),            # Allow write to qd, by default
                         periph_ev.eq(rx.pkt.bit_select((rx.nb << 3) - 4, 4)), # Copy the peripheral id
                         tx_pkt[-8:].eq(not_ready),   # We return not ready to STM while waiting
-                        nb.eq(rx.nb-1)               # Get the number of bytes received
+                        nb.eq(rx.nb-1),              # Get the number of bytes received
+                        flags.eq(rx.pkt.bit_select((rx.nb << 3) - 8, 4))
                     ]
                     m.next = "RECEIVE_HANDSHAKE"
             # IN RECEIVE_HANDSHAKE state, we wait for the selected peripheral to be ready

@@ -24,6 +24,7 @@ class SevenRx(Elaboratable):
         self.i_pkt    = Signal(self.pkt_size * 8)
         self.i_valid  = Signal()
         self.i_nb     = Signal()
+        self.i_flags  = Signal(4)
 
         # Outputs
         self.o_ready  = Signal()
