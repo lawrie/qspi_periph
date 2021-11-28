@@ -40,39 +40,26 @@ class ST7789Test(Elaboratable):
         st7789 = ST7789(150000)
         m.submodules.st7789 = st7789
        
-        #x = Signal(8)
-        #y = Signal(8)
-        #next_pixel = Signal()
- 
         m.d.comb += [
             oled_clk .eq(st7789.spi_clk),
             oled_mosi.eq(st7789.spi_mosi),
             oled_dc  .eq(st7789.spi_dc),
             oled_resn.eq(st7789.spi_resn),
             oled_csn .eq(1),
-            #next_pixel.eq(st7789.next_pixel),
-            #x.eq(st7789.x),
-            #y.eq(st7789.y),
         ]
 
-        #with m.If(x[4] ^ y[4]):
-        #    m.d.comb += st7789.color.eq(x[3:8] << 6)
-        #with m.Else():
-        #    m.d.comb += st7789.color.eq(y[3:8] << 11)
-
-        m.submodules.hx = hx = Hex()
-        d = Signal(64,reset=0x0123456789abcdef)
+        m.submodules.hx = hx = Hex(data_len=512, hex_digits=32, fore_color=0x001f)
+        d1 = Signal(64,reset=0x0123456789abcdef)
+        d2 = Signal(64,reset=0xfedcba9876543210)
 
         m.d.comb += [
-            hx.data.eq(Cat(d,d)),
+            hx.data.eq(Cat([d1,d2,d2,d1,d1,d2,d2,d1])),
             hx.x.eq(st7789.x),
             hx.y.eq(st7789.y),
             st7789.color.eq(hx.color)
         ]
 
-        m.d.comb += [
-            Cat([i.o for i in led]).eq(st7789.init)
-        ]
+        m.d.comb += Cat([i.o for i in led]).eq(st7789.init)
 
         return m
 

@@ -11,7 +11,7 @@ class ST7789(Elaboratable):
     CLK_PHASE    = 0
     CLK_POLARITY = 1
     NOP          = 0
-    INIT_FILE    = "st7789_linit_xflip.mem"
+    INIT_FILE    = "st7789_linit.mem"
 
     def __init__(self, reset_delay):
         self.color          = Signal(self.COLOR_BITS)
@@ -26,11 +26,6 @@ class ST7789(Elaboratable):
         self.init           = Signal()
         self.reset_delay    = reset_delay
 
-    # Used for simulation
-    def ports(self):
-        return [self.color, self.x, self.y, self.next_pixel,
-                self.spi_csn, self.spi_clk, self.spi_mosi, self.spi_dc, self.spi_resn]
-        
     def elaborate(self, platform):
         m = Module()
 
