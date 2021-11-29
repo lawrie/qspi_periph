@@ -59,43 +59,43 @@ class ST7789(Elaboratable):
         ]
 
         with m.If(delay_cnt[-1] == 0): # Delay
-            m.d.sync += [
+            m.d.spi += [
                 delay_cnt.eq(delay_cnt - 1),
                 resn.eq(1)
             ]
         with m.Elif(index[4:] != len(init_data)):
-            m.d.sync += index.eq(index+1)
+            m.d.spi += index.eq(index+1)
             with m.If(index[0:4] == 0): # Start of byte
                 with m.If(init): # Still initialization
-                    m.d.sync += [
+                    m.d.spi += [
                         dc.eq(0),
                         arg.eq(arg + 1)
                     ]
                     with m.If(arg == 0):
-                        m.d.sync += [
+                        m.d.spi += [
                             data.eq(self.NOP),
                             clken.eq(0),
                             last_cmd.eq(next_byte)
                         ]
                     with m.Elif(arg == 1):
-                        m.d.sync += [
+                        m.d.spi += [
                             num_args.eq(next_byte[0:5]),
                             delay_set.eq(next_byte[7]),
                             data.eq(last_cmd),
                             clken.eq(1)
                         ]
                         with m.If(next_byte == 0):
-                            m.d.sync += arg.eq(0)
+                            m.d.spi += arg.eq(0)
                     with m.Elif(arg <= num_args + 1):
-                        m.d.sync += [
+                        m.d.spi += [
                             data.eq(next_byte),
                             clken.eq(1),
                             dc.eq(1)
                         ]
                         with m.If((arg == num_args + 1) & ~delay_set):
-                            m.d.sync += arg.eq(0)
+                            m.d.spi += arg.eq(0)
                     with m.Elif(delay_set):
-                        m.d.sync += [
+                        m.d.spi += [
                             delay_cnt.eq(clk_mhz << next_byte[0:5]), # 2^n us delay
                             data.eq(self.NOP),
                             clken.eq(0),
@@ -103,33 +103,33 @@ class ST7789(Elaboratable):
                             arg.eq(0)
                         ]
                 with m.Else(): # Send pixels and set x, y and next_pixel
-                    m.d.sync += [
+                    m.d.spi += [
                         dc.eq(1),
                         byte_toggle.eq(~byte_toggle),
                         clken.eq(1),
                         index[4:].eq(0)
                     ]
                     with m.If(byte_toggle):
-                        m.d.sync += [
+                        m.d.spi += [
                             data.eq(self.color[0:8]),
                             self.next_pixel.eq(1)
                         ]
                         with m.If(self.x == self.X_SIZE - 1):
-                            m.d.sync += self.x.eq(0)
+                            m.d.spi += self.x.eq(0)
                             with m.If(self.y == self.Y_SIZE -1):
-                                m.d.sync += self.y.eq(0)
+                                m.d.spi += self.y.eq(0)
                             with m.Else():
-                               m.d.sync += self.y.eq(self.y + 1)
+                               m.d.spi += self.y.eq(self.y + 1)
                         with m.Else():
-                            m.d.sync += self.x.eq(self.x + 1)
+                            m.d.spi += self.x.eq(self.x + 1)
                     with m.Else():
-                        m.d.sync += data.eq(self.color[8:])
+                        m.d.spi += data.eq(self.color[8:])
             with m.Else(): # Shift out byte
-                m.d.sync += self.next_pixel.eq(0)
+                m.d.spi += self.next_pixel.eq(0)
                 with m.If(index[0] == 0):
-                    m.d.sync += data.eq(Cat(0b0,data[0:7]))
+                    m.d.spi += data.eq(Cat(0b0,data[0:7]))
         with m.Else(): # Initialization done, start sending pixels
-            m.d.sync += [
+            m.d.spi += [
                 init.eq(0),
                 index[4:].eq(0)
             ]        

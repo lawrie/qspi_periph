@@ -6,6 +6,9 @@ from nmigen.lib.cdc import FFSynchronizer
 from qspi_tx import QspiTx
 from qspi_rx import QspiRx
 
+from hex import Hex
+from st7789 import ST7789
+
 class Dispatcher(Elaboratable):
     """ Interface between QSPI and peripherals """
     def __init__(self, pkt_size=16, num_periphs=15, qw=4):
@@ -54,6 +57,33 @@ class Dispatcher(Elaboratable):
         periph_ev = Signal(4)                  # The event id for both directions
         nb        = Signal(4)                  # The number of bytes received
         flags     = Signal(4)                  # Extra flags sent with write request
+
+        # OLED
+        #oled  = platform.request("oled")
+        #oled_clk  = oled.oled_clk
+        #oled_mosi = oled.oled_mosi
+        #oled_dc   = oled.oled_dc
+        #oled_resn = oled.oled_resn
+        #oled_csn  = oled.oled_csn
+
+        #st7789 = ST7789(150000)
+        #m.submodules.st7789 = st7789
+
+        #m.d.comb += [
+        #    oled_clk .eq(st7789.spi_clk),
+        #    oled_mosi.eq(st7789.spi_mosi),
+        #    oled_dc  .eq(st7789.spi_dc),
+        #    oled_resn.eq(st7789.spi_resn),
+        #    oled_csn .eq(1),
+        #]
+        #m.submodules.hx = hx = Hex(data_len=256, hex_digits=32, fore_color=0x001f)
+
+        #m.d.comb += [
+        #    hx.data.eq(Cat([tx_pkt, rx_pkt])),
+        #    hx.x.eq(st7789.x),
+        #    hx.y.eq(st7789.y),
+        #    st7789.color.eq(hx.color)
+        #]
 
         # De-gltch sclk
         sclk = Signal()
