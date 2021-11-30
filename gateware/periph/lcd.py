@@ -2,8 +2,8 @@ from nmigen import *
 from nmigen.build import *
 from nmigen.utils import bits_for
 
-from text import Text
-from st7789 import ST7789
+from periph.text import Text
+from periph.st7789 import ST7789
 
 class LCD(Elaboratable):
     """ LCD text peripheral """
