@@ -7,6 +7,8 @@
 
 static char hello[] = "\x20" "Hello World!\n";
 
+static char hello5[] = "\x50" " Hello World!  ";
+
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(PIN_DIRECTION, INPUT);  // direction
@@ -90,7 +92,7 @@ void loop() {
       // Write to peripheral 0 or 2 o2 3
       // If ready to send, write the packet
       if (rx_pkt[0] == 0xF0 || rx_pkt[0] == 0xB0) { // B0 is temporary hack
-        if (cnt % 5 == 0) {
+        if (cnt % 6 == 0) {
           Serial.println("Writing event 0");
           if (!QSPI.write(tx_pkt, 16))
             Serial.println("QSPI.transmit failed");
@@ -98,22 +100,26 @@ void loop() {
           char t = tx_pkt[15];
           for(int i=15;i>1;i--) tx_pkt[i] = tx_pkt[i-1];
           tx_pkt[1] = t;
-        } else if (cnt % 5 == 1) {
+        } else if (cnt % 6 == 1) {
           Serial.println("Writing event 0");
           if (!QSPI.write(hello, 14))
             Serial.println("QSPI.transmit failed");
-        } else if (cnt % 5 == 2){
+        } else if (cnt % 6 == 2){
           Serial.println("Writing event 3");
           sev_pkt[1] = sev_val++;
           if (!QSPI.write(sev_pkt, 2))
             Serial.println("QSPI.transmit failed");          
-        } else if (cnt % 5 == 3) {
+        } else if (cnt % 6 == 3) {
           Serial.println("Writing event 4 (write)");
           if (!QSPI.write(bram_write, 15))
             Serial.println("QSPI.transmit failed");
-        } else {
+        } else if (cnt % 6 == 4) {
           Serial.println("Writing event 4 (read)");
           if (!QSPI.write(bram_read, 4))
+            Serial.println("QSPI.transmit failed");
+        } else {
+          Serial.println("Writing event 5");
+          if (!QSPI.write(hello5, 16))
             Serial.println("QSPI.transmit failed");
         }
       } else if (rx_pkt[0] != 0xFF && digitalRead(PIN_DIRECTION) == 1) {
