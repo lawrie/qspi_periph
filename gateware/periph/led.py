@@ -1,7 +1,7 @@
 from nmigen import *
 
-class TestBoth(Elaboratable):
-    """ Test of RX peripheral that receives data from the host """
+class Led(Elaboratable):
+    """ Test peripheral that writes to leds """
     def __init__(self, pkt_size=16):
         # Parameters
         self.pkt_size = pkt_size
@@ -28,11 +28,11 @@ class TestBoth(Elaboratable):
         with m.If(self.i_valid):
             m.d.sync += self.led.eq(self.i_pkt[:8])
         
-        # No output
+        # Always ready and no output
         m.d.comb += [
             self.o_ready.eq(1),
             self.o_valid.eq(0),
-            self.o_nb.eq(16)
+            self.o_nb.eq(0)
         ]
 
         return m

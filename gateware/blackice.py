@@ -4,7 +4,7 @@ from nmigen_boards.blackice_ii import *
 from nmigen.build import *
 
 from dispatcher import Dispatcher
-from periph.test_both import TestBoth
+from periph.led import Led
 from periph.hello_tx import HelloTx
 from periph.uart import Uart
 from periph.sevseg import SevenRx
@@ -37,7 +37,7 @@ class QSPITest(Elaboratable):
     def __init__(self):
         self.dispatcher = Dispatcher()
 
-        self.dispatcher.register(0, TestBoth(), True,  True)
+        self.dispatcher.register(0, Led(), True,  False)
         self.dispatcher.register(1, HelloTx(),  False, True)
         self.dispatcher.register(2, Uart(), True,  True)
         self.dispatcher.register(3, SevenRx(),  True,  False)
