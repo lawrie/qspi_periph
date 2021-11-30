@@ -117,3 +117,6 @@ These are all in the gateware/periph directory.
 A prototype interface has been produced for the Blackice II boards which supports QSPI from the STM32 to tthe ice40 - see gateware/blackice.py.
 
 The STM32 side uses mystorm Arduino - see src/QSPIETest
+
+![QSPIE](https://github.com/lawrie/lawrie.github.io/blob/master/images/qspie.jpg)
+
