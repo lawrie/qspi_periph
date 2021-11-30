@@ -46,7 +46,7 @@ The nMigen implementation consists of a dispatcher component that controls the Q
 
 Peripheral can be regiistered as RX peripheral that just receive data, or TX peripherals that just send data, or as both RX and TX. 
 
-### Registring peripherals
+### Registering peripherals
 
 Peripheral registration uses a register function of the dispatcher component. It will typically be done in the __init__ method of the top level nMigen component.
 
