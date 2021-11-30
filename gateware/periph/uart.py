@@ -1,7 +1,7 @@
 from nmigen import *
 from nmigen_stdio.serial import *
 
-class TestUart(Elaboratable):
+class Uart(Elaboratable):
     """ Uart peripheral using ngigen-stdio """
     def __init__(self, pkt_size=16):
         # Parameters

@@ -4,12 +4,12 @@ from nmigen_boards.blackice_ii import *
 from nmigen.build import *
 
 from dispatcher import Dispatcher
-from test_both import TestBoth
-from hello_tx import HelloTx
-from test_uart import TestUart
-from sevseg import SevenRx
-from bram_periph import BramPeriph
-from lcd import LCD
+from periph.test_both import TestBoth
+from periph.hello_tx import HelloTx
+from periph.uart import Uart
+from periph.sevseg import SevenRx
+from periph.bram_periph import BramPeriph
+from periph.lcd import LCD
 
 from pll import PLL
 
@@ -39,7 +39,7 @@ class QSPITest(Elaboratable):
 
         self.dispatcher.register(0, TestBoth(), True,  True)
         self.dispatcher.register(1, HelloTx(),  False, True)
-        self.dispatcher.register(2, TestUart(), True,  True)
+        self.dispatcher.register(2, Uart(), True,  True)
         self.dispatcher.register(3, SevenRx(),  True,  False)
         self.dispatcher.register(4, BramPeriph(),   True,  True)
         self.dispatcher.register(5, LCD(),   True,  False)
