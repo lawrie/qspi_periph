@@ -1,7 +1,7 @@
 from nmigen import *
 from nmigen.utils import bits_for
 
-from readbin import readbin
+from util.readbin import readbin
 
 from math import log2, ceil, floor
 
@@ -10,7 +10,7 @@ def is_pow_2(x):
 
 class Text(Elaboratable):
     def __init__(self,  
-                 font="font_bizcat8x16.mem", font_width=8, font_depth=16,
+                 font="mem/font_bizcat8x16.mem", font_width=8, font_depth=16,
                  x_res= 240, y_res = 240, text_len=240, 
                  fore_color=0xffff, back_color=0x0000, color_bits=16):
         # Parameter checks

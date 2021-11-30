@@ -3,8 +3,8 @@ from nmigen.utils import bits_for
 
 from nmigen.lib.cdc import FFSynchronizer
 
-from qspi_tx import QspiTx
-from qspi_rx import QspiRx
+from qspi.qspi_tx import QspiTx
+from qspi.qspi_rx import QspiRx
 
 from hex import Hex
 from st7789 import ST7789

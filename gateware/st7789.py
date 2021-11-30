@@ -1,6 +1,6 @@
 from nmigen import *
 
-from readhex import *
+from util.readhex import *
 
 class ST7789(Elaboratable):
     COLOR_BITS   = 16
@@ -11,7 +11,7 @@ class ST7789(Elaboratable):
     CLK_PHASE    = 0
     CLK_POLARITY = 1
     NOP          = 0
-    INIT_FILE    = "st7789_linit_xflip.mem"
+    INIT_FILE    = "mem/st7789_linit_xflip.mem"
 
     def __init__(self, reset_delay):
         self.color          = Signal(self.COLOR_BITS)

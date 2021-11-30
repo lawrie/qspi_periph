@@ -1,7 +1,7 @@
 from nmigen import *
 from nmigen.utils import bits_for
 
-from readbin import readbin
+from util.readbin import readbin
 
 from math import log2, ceil, floor
 
@@ -10,7 +10,7 @@ def is_pow_2(x):
 
 class Hex(Elaboratable):
     def __init__(self, data_len=256, hex_digits=32, 
-                 font="hex_font.mem", font_width=6, font_depth=8,
+                 font="mem/hex_font.mem", font_width=6, font_depth=8,
                  x_res= 240, y_res = 240, 
                  fore_color=0xffff, back_color=0x0000, color_bits=16):
         # Parameter checks
