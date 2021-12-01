@@ -43,7 +43,7 @@ class PLL(Elaboratable):
     def _calc_freq_coefficients(self):
         # cribbed from Icestorm's icepll.
         f_in, f_req = self.freq_in, self.freq_out
-        #assert 25 <= f_in <= 25 # was 13
+        assert 100 <= f_in <= 100
         assert 16 <= f_req <= 275
         coefficients = namedtuple('coefficients', 'divr divf divq')
         divf_range = 128        # see comments in icepll.cc
@@ -67,16 +67,31 @@ class PLL(Elaboratable):
 
     def elaborate(self, platform):
 
-        # coeff = self._calc_freq_coefficients()
-
         pll_lock = Signal()
+
+        f_pfd = self.freq_in / (self.coeff.divr + 1);
+
+        if f_pfd < 17:
+            filt_range = 1
+        elif f_pfd < 26:
+            filt_range = 2
+        elif f_pfd < 44:
+            filt_range = 3
+        elif f_pfd < 66:
+            filt_range = 4
+        elif f_pfd < 101:
+            filt_range = 5
+        else:
+            filt_range = 6
+
+        print("filter range", filt_range)
 
         pll = Instance("SB_PLL40_CORE",# "SB_PLL40_PAD" for up5k
             p_FEEDBACK_PATH='SIMPLE',
             p_DIVR=self.coeff.divr,
             p_DIVF=self.coeff.divf,
             p_DIVQ=self.coeff.divq,
-            p_FILTER_RANGE=0b010,
+            p_FILTER_RANGE=filt_range,
 
             ##i_PACKAGEPIN=self.clk_pin, for up5k
             i_REFERENCECLK=self.clk_pin,
